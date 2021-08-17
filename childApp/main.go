@@ -162,9 +162,19 @@ func main() {
 		//ctx = otel.GetTextMapPropagator().Extract(context.Background(), otelsarama.NewConsumerMessageCarrier(&msg))
 
 		tr := tp.Tracer("consumer")
-		_, span := tr.Start(ctx, "consume message", trace.WithAttributes(
-			semconv.MessagingOperationProcess,
-		))
+
+		traceId, err := trace.TraceIDFromHex(spanCtxt.TraceID)
+		spanId, err := trace.SpanIDFromHex(spanCtxt.SpanID)
+
+		sc := trace.ContextWithSpanContext(ctx, trace.NewSpanContext(trace.SpanContextConfig{
+			TraceID:    traceId,
+			SpanID:     spanId,
+			TraceFlags: trace.FlagsSampled,
+		}))
+		// _, span := tr.Start(ctx, "consume message", trace.WithAttributes(
+		// 	semconv.MessagingOperationProcess,
+		// ))
+		_, span := tr.Start(sc, "consumerChildSpan")
 		defer span.End()
 
 		log.Print("Is valid:", span.SpanContext().IsValid())
